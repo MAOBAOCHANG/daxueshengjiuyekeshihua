@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大学生就业数据可视化平台 v2.0</title>
+    
+    <!-- 外部库 -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <div class="topbar">
+        <div class="logo">
+            <i class="fas fa-graduation-cap"></i>
+            大学生就业数据可视化平台
+            <span class="subtitle">v2.0 · AI智能建议 · 25所知名高校</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="active" onclick="switchTab('overview', event)">数据总览</a>
+            <a href="#" onclick="switchTab('trend', event)">历年趋势</a>
+            <a href="#" onclick="switchTab('compare', event)">专业对比</a>
+            <a href="#" onclick="switchTab('about', event)">关于</a>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        
+        <!-- 数据总览区域（默认显示） -->
+        <div id="overviewSection">
+            <!-- 搜索筛选区域 -->
+            <div class="search-section">
+                <div class="field">
+                    <label>选择专业</label>
+                    <select id="majorSelect" style="height:46px;">
+                        <option>加载中...</option>
+                    </select>
+                </div>
+                <div class="field" style="min-width:180px;">
+                    <label>选择院校（可选）</label>
+                    <select id="universitySelect" style="height:46px;" onchange="onUniversityChange()">
+                        <option value="">-- 全部院校 --</option>
+                    </select>
+                </div>
+                <div class="field" style="min-width:140px;">
+                    <label>毕业年份</label>
+                    <select id="yearSelect">
+                        <option value="2026" selected>2026届</option>
+                        <option value="2025">2025届</option>
+                        <option value="2024">2024届</option>
+                        <option value="2023">2023届</option>
+                        <option value="2022">2022届</option>
+                    </select>
+                </div>
+                <div class="field" style="min-width:140px;">
+                    <label>学历层次</label>
+                    <select id="degreeSelect">
+                        <option selected>本科</option>
+                        <option>硕士</option>
+                        <option>博士</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="updateAll()">
+                    <i class="fas fa-search"></i> 查看数据
+                </button>
+                <button class="btn btn-secondary" onclick="addCompare()">
+                    <i class="fas fa-plus"></i> 加入对比
+                </button>
+                <!-- 新增：AI建议按钮 -->
+                <button class="btn" onclick="showAISuggestion()" style="background: linear-gradient(135deg, #27ae60, #2ecc71);">
+                    <i class="fas fa-robot"></i> AI就业建议
+                </button>
+            </div>
+
+            <!-- 对比功能栏 -->
+            <div class="compare-bar" id="compareBar">
+                <span style="font-size:13px;color:#7f8c8d;">对比列表：</span>
+                <div id="compareTags"></div>
+                <button class="action" onclick="doCompare()">
+                    <i class="fas fa-chart-bar"></i> 开始对比
+                </button>
+                <button class="action" style="background:#e74c3c; margin-left:8px;" onclick="clearCompare()">
+                    清空
+                </button>
+            </div>
+
+            <!-- 数据卡片区域 -->
+            <div class="stats-row" id="statsRow">
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-briefcase"></i></div>
+                    <div class="info">
+                        <div class="num" id="statRate">--</div>
+                        <div class="lbl">就业率</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-yen-sign"></i></div>
+                    <div class="info">
+                        <div class="num" id="statSalary">--</div>
+                        <div class="lbl">平均月薪</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-graduation-cap"></i></div>
+                    <div class="info">
+                        <div class="num" id="statStudy">--</div>
+                        <div class="lbl">升学率</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-building"></i></div>
+                    <div class="info">
+                        <div class="num" id="statRegion">--</div>
+                        <div class="lbl">主要就业地</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表网格 -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-chart-bar" style="margin-right:8px;color:var(--accent);"></i>就业率与薪资
+                        </div>
+                        <div class="card-badge">双轴柱状图</div>
+                    </div>
+                    <div class="chart-box" id="chartBar"></div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-coins" style="margin-right:8px;color:var(--warning);"></i>薪资分布
+                        </div>
+                        <div class="card-badge">柱状图</div>
+                    </div>
+                    <div class="chart-box" id="chartSalary"></div>
+                </div>
+                
+                <div class="chart-card sankey-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-project-diagram" style="margin-right:8px;color:#8e44ad;"></i>毕业去向流向
+                        </div>
+                        <div class="card-badge">桑基图 Sankey</div>
+                    </div>
+                    <div class="chart-box" id="chartSankey"></div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-bullseye" style="margin-right:8px;color:var(--success);"></i>专业竞争力雷达图
+                        </div>
+                        <div class="card-badge">多维度评估</div>
+                    </div>
+                    <div class="chart-box" id="chartRadar"></div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-chart-line" style="margin-right:8px;color:var(--accent);"></i>历年就业率趋势
+                        </div>
+                        <div class="card-badge">折线图</div>
+                    </div>
+                    <div class="chart-box" id="chartTrend"></div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-map-marker-alt" style="margin-right:8px;color:#e74c3c;"></i>主要就业城市
+                        </div>
+                        <div class="card-badge">柱状图</div>
+                    </div>
+                    <div class="chart-box" id="chartRegion"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历年趋势区域（默认隐藏） -->
+        <div id="trendSection" style="display:none;">
+            <div style="text-align: center; padding: 100px 20px; color: #7f8c8d;">
+                <i class="fas fa-chart-line" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+                <h2 style="color: #1a5276; margin-bottom: 10px;">历年趋势分析</h2>
+                <p>该功能正在开发中，敬请期待...</p>
+            </div>
+        </div>
+
+        <!-- 专业对比区域（默认隐藏） -->
+        <div id="compareSection" style="display:none;">
+            <div style="text-align: center; padding: 60px 20px; color: #7f8c8d;">
+                <i class="fas fa-balance-scale" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+                <h2 style="color: #1a5276; margin-bottom: 10px;">专业对比分析</h2>
+                <p>请在"数据总览"中选择专业并添加到对比列表，然后点击"开始对比"</p>
+            </div>
+        </div>
+
+        <!-- 页脚声明 -->
+        <div class="footer-note">
+            数据来源：综合各高校《就业质量年度报告》（2022-2026届）· 更新时间：2026年6月 · 本平台为课程设计作品，数据仅供参考
+            <br>
+            <span style="color: #27ae60; font-weight: 500;">🆕 v2.0 新增：AI智能就业建议 + 25所知名高校数据</span>
+        </div>
+    </div>
+
+    <!-- JavaScript 文件（注意顺序） -->
+    <script src="data.js"></script>
+    <script src="ai_advisor.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
